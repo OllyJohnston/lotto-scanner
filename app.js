@@ -81,7 +81,8 @@ async function captureAndScan() {
         canvas.width = cropWidth;
         canvas.height = cropHeight;
         const ctx = canvas.getContext('2d');
-        ctx.filter = 'grayscale(100%) contrast(180%) brightness(120%)';
+        // Mild contrast to keep digits sharp without blowing out the white receipt paper
+        ctx.filter = 'grayscale(100%) contrast(120%)';
         ctx.drawImage(video, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
         const imageData = canvas.toDataURL('image/jpeg', 1.0);
@@ -124,8 +125,8 @@ nativeCameraInput.addEventListener('change', (e) => {
             canvas.width = img.width;
             canvas.height = img.height;
             const ctx = canvas.getContext('2d');
-            // Basic cleanup on the HD photo
-            ctx.filter = 'grayscale(100%) contrast(150%)';
+            // Basic cleanup on the HD photo: lower contrast boost so we don't blind the AI
+            ctx.filter = 'grayscale(100%) contrast(120%)';
             ctx.drawImage(img, 0, 0);
 
             statusText.textContent = "Analyzing HD Photo...";
@@ -155,8 +156,10 @@ async function processImageData(imageData) {
 
         // CRITICAL FOR LOTTO: Add Brackets and Uppercase letters because
         // Euromillions tickets have layout like: A 23 24 29 36 45 [06 09]
+        // Add PSM 6: Assume a single uniform block of text (perfect for receipts/invoices)
         await worker.setParameters({
             tessedit_char_whitelist: '0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZ[]-',
+            tessedit_pageseg_mode: '6',
         });
 
         const result = await worker.recognize(imageData);
@@ -230,8 +233,31 @@ stopCamBtn.addEventListener('click', () => {
         stream = null;
         videoTrack = null;
         video.style.display = 'none';
-        statusText.textContent = "Camera powered off. You can now use your device's pull-down menu to turn on your flashlight!";
+        statusText.innerHTML = "Camera powered off.<br>Use your device's pull-down menu to turn on your flashlight, then turn the camera back on!";
         scanBtn.disabled = true;
+
+        // Change icon to a 'Play' button
+        stopCamBtn.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+        `;
+        stopCamBtn.title = "Turn Camera On";
+
+    } else {
+        // Restart the camera
+        video.style.display = 'block';
+        statusText.textContent = "Restarting camera...";
+        setupCamera();
+
+        // Revert icon to 'Power Off'
+        stopCamBtn.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+                <line x1="12" y1="2" x2="12" y2="12"></line>
+            </svg>
+        `;
+        stopCamBtn.title = "Stops the web camera so you can use your phone's native flashlight";
     }
 });
 
