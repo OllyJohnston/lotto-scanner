@@ -36,11 +36,7 @@ async function setupCamera() {
         video.srcObject = stream;
         videoTrack = stream.getVideoTracks()[0];
 
-        // Check if torch is supported
-        const capabilities = videoTrack.getCapabilities();
-        if (capabilities.torch) {
-            torchBtn.style.display = 'flex';
-        }
+        // Torch button is always shown now, errors are handled on click.
 
         // Once video is ready to play, enable the UI
         video.onloadedmetadata = () => {
@@ -65,21 +61,34 @@ async function captureAndScan() {
 
     isScanning = true;
     scanBtn.disabled = true;
-    overlay.style.display = 'block'; // Show laser
+    const laser = document.getElementById('laser-line');
+    if (laser) laser.style.display = 'block'; // Show laser
     statusText.textContent = "Processing image...";
     statusText.classList.add('pulse');
 
     try {
-        // Set canvas dimensions to match video frame exactly
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        const cw = video.videoWidth;
+        const ch = video.videoHeight;
+
+        // Match the target-box CSS dimensions for cropping (80% width, 30% height)
+        const cropWidth = cw * 0.8;
+        const cropHeight = ch * 0.3;
+        const startX = (cw - cropWidth) / 2;
+        const startY = (ch - cropHeight) / 2;
+
+        // Set canvas to precisely the cropped zone
+        canvas.width = cropWidth;
+        canvas.height = cropHeight;
         const ctx = canvas.getContext('2d');
 
-        // Draw the current video frame onto the canvas
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // Apply visual filters BEFORE OCR to massively improve number detection
+        ctx.filter = 'grayscale(100%) contrast(180%) brightness(120%)';
+
+        // Draw just the target box area onto the canvas
+        ctx.drawImage(video, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
         // Convert canvas to a Base64 image data URL
-        const imageData = canvas.toDataURL('image/jpeg', 0.9);
+        const imageData = canvas.toDataURL('image/jpeg', 1.0);
 
         // Send to Tesseract for OCR processing
         statusText.textContent = "Booting AI Engine...";
@@ -127,7 +136,8 @@ async function captureAndScan() {
         // Reset state
         isScanning = false;
         scanBtn.disabled = false;
-        overlay.style.display = 'none'; // Hide laser
+        const laser = document.getElementById('laser-line');
+        if (laser) laser.style.display = 'none'; // Hide laser
         statusText.classList.remove('pulse');
 
         // Reset status color if it was red
@@ -144,7 +154,10 @@ async function captureAndScan() {
 scanBtn.addEventListener('click', captureAndScan);
 
 torchBtn.addEventListener('click', async () => {
-    if (!videoTrack) return;
+    if (!videoTrack) {
+        alert("Camera isn't ready yet!");
+        return;
+    }
     try {
         isTorchOn = !isTorchOn;
         await videoTrack.applyConstraints({
@@ -154,6 +167,7 @@ torchBtn.addEventListener('click', async () => {
     } catch (err) {
         console.error("Torch error:", err);
         isTorchOn = !isTorchOn; // Revert state
+        alert("Your browser or device does not support turning on the flashlight via the web. Try using Google Chrome!");
     }
 });
 

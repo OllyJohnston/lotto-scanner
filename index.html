@@ -12,7 +12,7 @@
     <meta name="theme-color" content="#0b0f19">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="stylesheet" href="./style.css?v=2">
+    <link rel="stylesheet" href="./style.css?v=3">
 </head>
 
 <body>
@@ -29,15 +29,17 @@
                 <!-- Video feed element -->
                 <video id="camera-feed" autoplay playsinline muted></video>
                 <!-- UI Laser overlay -->
-                <div class="scanner-overlay" id="scanner-overlay" style="display: none;">
-                    <div class="laser-line"></div>
+                <div class="scanner-overlay" id="scanner-overlay">
+                    <div class="target-box">
+                        <div class="laser-line" id="laser-line" style="display: none;"></div>
+                    </div>
                 </div>
             </div>
 
             <div class="status" id="status-text">Initializing camera...</div>
 
             <div class="controls">
-                <button class="icon-btn" id="torch-btn" aria-label="Toggle Flashlight" style="display: none;">
+                <button class="icon-btn" id="torch-btn" aria-label="Toggle Flashlight">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 2v2"></path>
@@ -73,7 +75,7 @@
 
     <!-- Load Tesseract.js (Optical Character Recognition library) via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <script src="./app.js?v=2"></script>
+    <script src="./app.js?v=3"></script>
 </body>
 
 </html>
