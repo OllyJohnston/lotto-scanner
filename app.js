@@ -103,10 +103,10 @@ async function captureAndScan() {
             }
         });
 
-        // CRITICAL FOR LOTTO: Only look for numbers and basic spacing.
-        // This stops it guessing letters when it sees blurry digits
+        // CRITICAL FOR LOTTO: Add Brackets and Uppercase letters because
+        // Euromillions tickets have layout like: A 23 24 29 36 45 [06 09]
         await worker.setParameters({
-            tessedit_char_whitelist: '0123456789 ',
+            tessedit_char_whitelist: '0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZ[]-',
         });
 
         const result = await worker.recognize(imageData);
@@ -118,12 +118,31 @@ async function captureAndScan() {
         // Show results
         resultsArea.classList.add('active');
 
-        if (text.trim() === "") {
+        // Let's do some smart parsing to find lines that look like ticket draws
+        // EuroMillions: 5 numbers then [2 numbers]
+        const lines = text.split('\n');
+        let parsedDraws = [];
+
+        lines.forEach(line => {
+            // Very loose regex: looks for sequence of digits and brackets
+            // e.g. "A 23 24 29 36 45 [06 09]"
+            if (line.includes('[') && line.includes(']')) {
+                parsedDraws.push("⭐ " + line.trim());
+            } else if (line.match(/(?:\d{1,2}\s+){4,}/)) {
+                // At least 5 numbers in a row
+                parsedDraws.push("🎟️ " + line.trim());
+            }
+        });
+
+        if (parsedDraws.length > 0) {
+            scannedText.style.color = "var(--accent)";
+            scannedText.innerHTML = `<strong>Lines detected:</strong><br><br>` + parsedDraws.join('<br>') + `<br><br><span style="color:var(--text-secondary);font-size:0.8em;opacity:0.7;">Raw OCR Output:</span><br><span style="opacity:0.6;font-size:0.8em;">${text}</span>`;
+        } else if (text.trim() === "") {
             scannedText.style.color = "var(--danger)";
-            scannedText.textContent = "No text found. Try getting closer or improving lighting.";
+            scannedText.textContent = "No text found. Try moving closer or adjusting the lighting.";
         } else {
             scannedText.style.color = "white";
-            scannedText.textContent = text;
+            scannedText.textContent = "Could not find ticket layout. Raw output:\n\n" + text;
         }
 
         statusText.textContent = "Scan Complete";
@@ -160,14 +179,26 @@ torchBtn.addEventListener('click', async () => {
     }
     try {
         isTorchOn = !isTorchOn;
+        // Apply the torch constraint
         await videoTrack.applyConstraints({
             advanced: [{ torch: isTorchOn }]
         });
+
+        // Android 15/16 Bug Check:
+        // On modern Chromium, if the OS overrides the flag, the capability might fail silently.
+        // We can double check if the setting actually applied:
+        const settings = videoTrack.getSettings();
+        if (settings.torch !== isTorchOn && isTorchOn) {
+            console.warn("Torch constraint applied but hardware refused.");
+            // Throw to trigger catch block warning
+            throw new Error("Hardware locked.");
+        }
+
         torchBtn.classList.toggle('active', isTorchOn);
     } catch (err) {
         console.error("Torch error:", err);
         isTorchOn = !isTorchOn; // Revert state
-        alert("Your browser or device does not support turning on the flashlight via the web. Try using Google Chrome!");
+        alert("Torch unavailable: Your device might lock the flashlight to native apps only, or WebTorch is not fully supported on this OS version.");
     }
 });
 
