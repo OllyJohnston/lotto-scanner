@@ -12,9 +12,12 @@ const statusText = document.getElementById('status-text');
 const overlay = document.getElementById('scanner-overlay');
 const resultsArea = document.getElementById('results-area');
 const scannedText = document.getElementById('scanned-text');
+const torchBtn = document.getElementById('torch-btn');
 
 let stream = null;
+let videoTrack = null;
 let isScanning = false;
+let isTorchOn = false;
 
 // 1. Initialize the Camera
 async function setupCamera() {
@@ -31,6 +34,13 @@ async function setupCamera() {
 
         stream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = stream;
+        videoTrack = stream.getVideoTracks()[0];
+
+        // Check if torch is supported
+        const capabilities = videoTrack.getCapabilities();
+        if (capabilities.torch) {
+            torchBtn.style.display = 'flex';
+        }
 
         // Once video is ready to play, enable the UI
         video.onloadedmetadata = () => {
@@ -72,22 +82,26 @@ async function captureAndScan() {
         const imageData = canvas.toDataURL('image/jpeg', 0.9);
 
         // Send to Tesseract for OCR processing
-        // We use PSM 6 (Assume a single uniform block of text) which is good for tickets
-        statusText.textContent = "Extracting numbers with AI...";
+        statusText.textContent = "Booting AI Engine...";
 
-        const result = await Tesseract.recognize(
-            imageData,
-            'eng', // English language
-            {
-                logger: m => {
-                    // We could log progress here if we wanted
-                    if (m.status === "recognizing text") {
-                        const pct = Math.round(m.progress * 100);
-                        statusText.textContent = `Extracting numbers... ${pct}%`;
-                    }
+        // We create a worker to set specific parameters (whitelist)
+        const worker = await Tesseract.createWorker("eng", 1, {
+            logger: m => {
+                if (m.status === "recognizing text") {
+                    const pct = Math.round(m.progress * 100);
+                    statusText.textContent = `Extracting numbers... ${pct}%`;
                 }
             }
-        );
+        });
+
+        // CRITICAL FOR LOTTO: Only look for numbers and basic spacing.
+        // This stops it guessing letters when it sees blurry digits
+        await worker.setParameters({
+            tessedit_char_whitelist: '0123456789 ',
+        });
+
+        const result = await worker.recognize(imageData);
+        await worker.terminate(); // Clean up memory
 
         // Processing complete
         const text = result.data.text;
@@ -128,6 +142,20 @@ async function captureAndScan() {
 
 // Event Listeners
 scanBtn.addEventListener('click', captureAndScan);
+
+torchBtn.addEventListener('click', async () => {
+    if (!videoTrack) return;
+    try {
+        isTorchOn = !isTorchOn;
+        await videoTrack.applyConstraints({
+            advanced: [{ torch: isTorchOn }]
+        });
+        torchBtn.classList.toggle('active', isTorchOn);
+    } catch (err) {
+        console.error("Torch error:", err);
+        isTorchOn = !isTorchOn; // Revert state
+    }
+});
 
 // Start camera on load
 window.addEventListener('load', setupCamera);

@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Lotto Scanner Pro</title>
-    <meta name="description" content="A lightning fast Progressive Web App to scan and check your lottery tickets instantly.">
+    <meta name="description"
+        content="A lightning fast Progressive Web App to scan and check your lottery tickets instantly.">
     <!-- Web App Manifest -->
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#0b0f19">
@@ -12,6 +14,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="stylesheet" href="./style.css">
 </head>
+
 <body>
 
     <header>
@@ -30,12 +33,26 @@
                     <div class="laser-line"></div>
                 </div>
             </div>
-            
+
             <div class="status" id="status-text">Initializing camera...</div>
-            
+
             <div class="controls">
+                <button class="icon-btn" id="torch-btn" aria-label="Toggle Flashlight" style="display: none;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2v2"></path>
+                        <path d="M12 20v2"></path>
+                        <path d="M4.93 4.93l1.41 1.41"></path>
+                        <path d="M17.66 17.66l1.41 1.41"></path>
+                        <path d="M2 12h2"></path>
+                        <path d="M20 12h2"></path>
+                        <path d="M6.34 17.66l-1.41 1.41"></path>
+                        <path d="M19.07 4.93l-1.41 1.41"></path>
+                    </svg>
+                </button>
                 <button class="primary-btn" id="scan-btn" disabled>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10"></circle>
                         <circle cx="12" cy="12" r="3"></circle>
                     </svg>
@@ -49,7 +66,7 @@
             <h2 class="section-title">Raw Text Extracted</h2>
             <div class="scanned-text" id="scanned-text">Waiting for scan...</div>
         </div>
-        
+
         <!-- Hidden canvas used for taking a snapshot of the video frame to send to OCR -->
         <canvas id="snapshot-canvas" style="display: none;"></canvas>
     </main>
@@ -58,4 +75,5 @@
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="./app.js"></script>
 </body>
+
 </html>

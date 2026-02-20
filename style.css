@@ -6,7 +6,8 @@
     --glass-border: rgba(255, 255, 255, 0.08);
     --text-primary: #ffffff;
     --text-secondary: #94a3b8;
-    --accent: #10b981; /* Bright emerald green */
+    --accent: #10b981;
+    /* Bright emerald green */
     --accent-glow: rgba(16, 185, 129, 0.5);
     --danger: #f43f5e;
 }
@@ -27,7 +28,7 @@ body {
     flex-direction: column;
     overflow-x: hidden;
     /* Premium dark dynamic background */
-    background-image: 
+    background-image:
         radial-gradient(circle at 0% 0%, rgba(16, 185, 129, 0.15) 0%, transparent 40%),
         radial-gradient(circle at 100% 100%, rgba(56, 189, 248, 0.1) 0%, transparent 40%);
     background-attachment: fixed;
@@ -83,14 +84,15 @@ main {
     border-radius: 16px;
     overflow: hidden;
     background-color: #000;
-    box-shadow: 0 0 0 1px var(--glass-border), 0 10px 40px rgba(0,0,0,0.5);
+    box-shadow: 0 0 0 1px var(--glass-border), 0 10px 40px rgba(0, 0, 0, 0.5);
 }
 
 #camera-feed {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transform: scale(1.02); /* Slight scale to hide edges */
+    transform: scale(1.02);
+    /* Slight scale to hide edges */
 }
 
 /* The Animated Laser Line */
@@ -100,7 +102,7 @@ main {
     left: 0;
     width: 100%;
     height: 100%;
-    box-shadow: inset 0 0 40px rgba(0,0,0,0.7);
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.7);
     pointer-events: none;
     z-index: 10;
 }
@@ -118,14 +120,27 @@ main {
 }
 
 @keyframes scan {
-    0% { transform: translateY(0); }
-    100% { transform: translateY(calc(100cqh - 2px)); } /* Will fallback to 100% of parent in browser */
+    0% {
+        transform: translateY(0);
+    }
+
+    100% {
+        transform: translateY(calc(100cqh - 2px));
+    }
+
+    /* Will fallback to 100% of parent in browser */
 }
+
 /* Fallback for older browsers not supporting cqh */
 @supports not (height: calc(100cqh)) {
     @keyframes scan {
-        0% { top: 5%; }
-        100% { top: 95%; }
+        0% {
+            top: 5%;
+        }
+
+        100% {
+            top: 95%;
+        }
     }
 }
 
@@ -173,9 +188,31 @@ main {
     opacity: 0.7;
 }
 
+.icon-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    margin-right: 1rem;
+    transition: all 0.3s ease;
+}
+
+.icon-btn.active {
+    background: var(--accent);
+    color: #000;
+    box-shadow: 0 0 15px var(--accent-glow);
+}
+
 /* Results Area */
 .results-area {
-    display: none; /* Hidden initially */
+    display: none;
+    /* Hidden initially */
     animation: fadeIn 0.4s ease-out;
 }
 
@@ -197,10 +234,10 @@ main {
     font-size: 1rem;
     line-height: 1.6;
     color: #e2e8f0;
-    background: rgba(0,0,0,0.3);
+    background: rgba(0, 0, 0, 0.3);
     padding: 1rem;
     border-radius: 12px;
-    border: 1px inset rgba(255,255,255,0.05);
+    border: 1px inset rgba(255, 255, 255, 0.05);
     white-space: pre-wrap;
     word-break: break-all;
     max-height: 200px;
@@ -223,22 +260,38 @@ main {
 }
 
 @keyframes pulse-opacity {
-    0%, 100% { opacity: 0.5; }
-    50% { opacity: 1; }
+
+    0%,
+    100% {
+        opacity: 0.5;
+    }
+
+    50% {
+        opacity: 1;
+    }
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Custom Scrollbar for results */
 ::-webkit-scrollbar {
     width: 6px;
 }
+
 ::-webkit-scrollbar-track {
     background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
     background: var(--glass-border);
     border-radius: 10px;
