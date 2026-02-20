@@ -12,7 +12,7 @@ const statusText = document.getElementById('status-text');
 const overlay = document.getElementById('scanner-overlay');
 const resultsArea = document.getElementById('results-area');
 const scannedText = document.getElementById('scanned-text');
-const torchBtn = document.getElementById('torch-btn');
+const stopCamBtn = document.getElementById('stop-cam-btn');
 const nativeCamBtn = document.getElementById('native-cam-btn');
 const nativeCameraInput = document.getElementById('native-camera');
 
@@ -38,8 +38,7 @@ async function setupCamera() {
         stream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = stream;
         videoTrack = stream.getVideoTracks()[0];
-
-        // Torch button is always shown now, errors are handled on click.
+        video.style.display = 'block';
 
         // Once video is ready to play, enable the UI
         video.onloadedmetadata = () => {
@@ -97,6 +96,15 @@ async function captureAndScan() {
 
 // 3. Capture via Native OS Camera
 nativeCamBtn.addEventListener('click', () => {
+    alert("Tip: Before checking ok, use your camera to ZOOM IN so ONLY the numbers fill the screen. \n\nIf the ticket looks huge to the AI, it will fail to read it.");
+    // Shut off live feed so user can use flash
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+        videoTrack = null;
+        video.style.display = 'none';
+        scanBtn.disabled = true;
+    }
     nativeCameraInput.click();
 });
 
@@ -215,33 +223,15 @@ function resetScanState() {
 // Event Listeners
 scanBtn.addEventListener('click', captureAndScan);
 
-torchBtn.addEventListener('click', async () => {
-    if (!videoTrack) {
-        alert("Camera isn't ready yet!");
-        return;
-    }
-    try {
-        isTorchOn = !isTorchOn;
-        // Apply the torch constraint
-        await videoTrack.applyConstraints({
-            advanced: [{ torch: isTorchOn }]
-        });
-
-        // Android 15/16 Bug Check:
-        // On modern Chromium, if the OS overrides the flag, the capability might fail silently.
-        // We can double check if the setting actually applied:
-        const settings = videoTrack.getSettings();
-        if (settings.torch !== isTorchOn && isTorchOn) {
-            console.warn("Torch constraint applied but hardware refused.");
-            // Throw to trigger catch block warning
-            throw new Error("Hardware locked.");
-        }
-
-        torchBtn.classList.toggle('active', isTorchOn);
-    } catch (err) {
-        console.error("Torch error:", err);
-        isTorchOn = !isTorchOn; // Revert state
-        alert("Torch unavailable: Your device might lock the flashlight to native apps only, or WebTorch is not fully supported on this OS version.");
+stopCamBtn.addEventListener('click', () => {
+    if (stream) {
+        // Force kill the WebRTC camera stream
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+        videoTrack = null;
+        video.style.display = 'none';
+        statusText.textContent = "Camera powered off. You can now use your device's pull-down menu to turn on your flashlight!";
+        scanBtn.disabled = true;
     }
 });
 
