@@ -13,6 +13,8 @@ const overlay = document.getElementById('scanner-overlay');
 const resultsArea = document.getElementById('results-area');
 const scannedText = document.getElementById('scanned-text');
 const torchBtn = document.getElementById('torch-btn');
+const nativeCamBtn = document.getElementById('native-cam-btn');
+const nativeCameraInput = document.getElementById('native-camera');
 
 let stream = null;
 let videoTrack = null;
@@ -27,7 +29,8 @@ async function setupCamera() {
             video: {
                 facingMode: 'environment',
                 width: { ideal: 1920 },
-                height: { ideal: 1080 }
+                height: { ideal: 1080 },
+                advanced: [{ focusMode: "continuous" }]
             },
             audio: false
         };
@@ -55,7 +58,7 @@ async function setupCamera() {
     }
 }
 
-// 2. Capture and Process Image
+// 2. Capture and Process Image via WebRTC
 async function captureAndScan() {
     if (isScanning || !stream) return;
 
@@ -76,21 +79,60 @@ async function captureAndScan() {
         const startX = (cw - cropWidth) / 2;
         const startY = (ch - cropHeight) / 2;
 
-        // Set canvas to precisely the cropped zone
         canvas.width = cropWidth;
         canvas.height = cropHeight;
         const ctx = canvas.getContext('2d');
-
-        // Apply visual filters BEFORE OCR to massively improve number detection
         ctx.filter = 'grayscale(100%) contrast(180%) brightness(120%)';
-
-        // Draw just the target box area onto the canvas
         ctx.drawImage(video, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
-        // Convert canvas to a Base64 image data URL
         const imageData = canvas.toDataURL('image/jpeg', 1.0);
+        await processImageData(imageData);
 
-        // Send to Tesseract for OCR processing
+    } catch (err) {
+        console.error("Camera Capture Error:", err);
+    } finally {
+        resetScanState();
+    }
+}
+
+// 3. Capture via Native OS Camera
+nativeCamBtn.addEventListener('click', () => {
+    nativeCameraInput.click();
+});
+
+nativeCameraInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    isScanning = true;
+    statusText.textContent = "Loading native photo...";
+    statusText.classList.add('pulse');
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+        const img = new Image();
+        img.onload = async () => {
+            // Draw full res native image to canvas
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            // Basic cleanup on the HD photo
+            ctx.filter = 'grayscale(100%) contrast(150%)';
+            ctx.drawImage(img, 0, 0);
+
+            statusText.textContent = "Analyzing HD Photo...";
+            const imageData = canvas.toDataURL('image/jpeg', 1.0);
+            await processImageData(imageData);
+            resetScanState();
+        };
+        img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+
+// Common OCR Processing logic
+async function processImageData(imageData) {
+    try {
         statusText.textContent = "Booting AI Engine...";
 
         // We create a worker to set specific parameters (whitelist)
@@ -151,22 +193,23 @@ async function captureAndScan() {
         console.error("OCR Error:", err);
         statusText.style.color = "var(--danger)";
         statusText.textContent = "Failed to process image.";
-    } finally {
-        // Reset state
-        isScanning = false;
-        scanBtn.disabled = false;
-        const laser = document.getElementById('laser-line');
-        if (laser) laser.style.display = 'none'; // Hide laser
-        statusText.classList.remove('pulse');
-
-        // Reset status color if it was red
-        setTimeout(() => {
-            if (!isScanning) {
-                statusText.style.color = "var(--accent)";
-                statusText.textContent = "Ready for next scan";
-            }
-        }, 3000);
     }
+}
+
+function resetScanState() {
+    isScanning = false;
+    scanBtn.disabled = false;
+    const laser = document.getElementById('laser-line');
+    if (laser) laser.style.display = 'none'; // Hide laser
+    statusText.classList.remove('pulse');
+
+    // Reset status color if it was red
+    setTimeout(() => {
+        if (!isScanning) {
+            statusText.style.color = "var(--accent)";
+            statusText.textContent = "Ready for next scan";
+        }
+    }, 3000);
 }
 
 // Event Listeners
